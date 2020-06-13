@@ -1,3 +1,7 @@
-# RLMimic
+# Reinforcement Learning based 'Learning' of Dynamic Sepsis Treatment Strategies
 
-This repository contains code for Reinforcement Learning based, Dynamic Treatment strategies for Sepsis
+
+### Data
+Open [mimic] database was used as the data source. Relationships of the schema can be found [here][schema].
+
+Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas.
