@@ -5,3 +5,12 @@
 Open [mimic] database was used as the data source. Relationships of the schema can be found [here][schema].
 
 Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas.
+
+
+
+
+
+
+
+  [schema]:<https://mit-lcp.github.io/mimic-schema-spy/index.html>
+   [mimic]:<https://mimic.physionet.org/mimicdata>
