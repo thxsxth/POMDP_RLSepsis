@@ -1,10 +1,10 @@
 # Reinforcement Learning based 'Learning' of Dynamic Sepsis Treatment Strategies
 
 ## Still work in progress
-#### To do
-1. Try to Model the enviroment, Using Deep Markov Models, Structured Inference Networks+ RNNs and mechanistic CardioVascular Models.
-2. Use Graphical Neural Networks
-3. Try the Reinforcement Learning/Control
+#### Progress
+## Physiology Aware Sequential Autoencoder
+We propose an inference structure which could infer patient and intervention specific cardiovascular states, by a Sequential AutoEncoder, which is implicitly regularized by constraining the latent representation to have phyisilogical meaning and the decoder to be a mathematical model. This has the benefit from a simplicity, but has the potential to give useful Cardiovascular information in the ICU settings.
+
 
 
 
