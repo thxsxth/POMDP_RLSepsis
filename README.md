@@ -1,4 +1,4 @@
-# Reinforcement Learning based 'Learning' of Dynamic Sepsis Treatment Strategies
+# Reinforcement Learning based Learning of Dynamic Sepsis Treatment Strategies
 
 ## Still work in progress
 #### Progress
