@@ -14,7 +14,9 @@ Since the labs are much more sparse, we use a denoising stacked sequential autoe
 ### Data
 Open [mimic] database was used as the data source. Relationships of the schema can be found [here][schema].
 
-Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related measurements and (Most Vasopressors) and Vitals are all available on Big Query in Derived Tables. SQL based data cleaning and processing code are available on SQL folder. Input_cv.sql and Input_mv.sql are the SQL files used to extract the fluids and the equivalent volumes from BigQuery. (CV and MV denotes Carevue and MetaVision as inputs are in two seperate databases). These are combined before using for Modelling/RL.
+Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related measurements and (Most Vasopressors) and Vitals are all available on Big Query in Derived Tables. 
+
+SQL based data cleaning and processing code is available on the SQL folder. Input_cv.sql and Input_mv.sql are the SQL files used to extract the fluids and the equivalent volumes from BigQuery. (CV and MV denotes Carevue and MetaVision as inputs are in two seperate databases). These are combined before using for Modelling/RL.
 
 To Run the analysis we need, Pivoted Vitals,Sofa Scores which includes Vasopressors (including Vasopressin),Labs and Fluids. The RL cohort is included in terms on icustay ids for convenience.
 
