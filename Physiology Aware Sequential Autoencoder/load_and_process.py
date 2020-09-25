@@ -23,7 +23,7 @@ labs=pd.read_csv('pivoted_labs/Pivoted_labs.csv',parse_dates=['charttime'])
 sofa=pd.read_csv('sofa_with_vaso2.csv',parse_dates=['endtime','starttime'])
 
 sofa['Vaso']=sofa['rate_norepinephrine'].add(0.1*sofa['rate_dopamine'],fill_value=0).add(sofa['rate_epinephrine'],fill_value=0)
-sofa['Vaso']=sofa['Vaso'].add(sofa['rate_dobutamine'],fill_value=0).add(10*sofa['rate_vasopressin'],fill_value=0).fillna(0)
+sofa['Vaso']=sofa['Vaso'].add(0.1*sofa['rate_dobutamine'],fill_value=0).add(10*sofa['rate_vasopressin'],fill_value=0).fillna(0)
 
 vitals['TempC']=vitals['TempC'].ffill()
 sofa['GCS_min']=sofa['GCS_min'].ffill()
