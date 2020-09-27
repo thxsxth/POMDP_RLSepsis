@@ -18,7 +18,7 @@ cols=[0,1,2,3,4,5,6,7,11,38,40,41,42]
 
 df.iloc[:,cols]=(df.iloc[:,cols]-means[cols])/stds[cols]
 
-class RL_dataset(Dataset):
+class DRL_dataset(Dataset):
   """
    Need the df Ready and scaled
    Normalization is Done before
