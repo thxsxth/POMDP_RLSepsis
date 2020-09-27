@@ -21,6 +21,10 @@ SQL based data cleaning and processing code is available on the SQL folder. Inpu
 To Run the analysis we need, Pivoted Vitals,Sofa Scores which includes Vasopressors (including Vasopressin),Labs and Fluids. The RL cohort is included in terms on icustay ids for convenience.
 
 
+### Reinforcement Learning
+For the RL implemntations, for convenience, I had saved states (which includes derived states), actions and rewards in (a rather large) csv file. This makes the replay buffer/batching straightforward application of PyTorch Dataset and Dataloader.
+
+
 
 
 
