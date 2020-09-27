@@ -11,7 +11,7 @@ Since the labs are much more sparse, we use a denoising stacked sequential autoe
 
 
 
-### Data
+## Data
 Open [mimic] database was used as the data source. Relationships of the schema can be found [here][schema]. You need permission to access MIMIC Data, more information on this is given on their website. After getting access I would recommend using Big Query MIMIC project to quickly access already processed schema.
 
 Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related measurements and (Most Vasopressors) and Vitals are all available on Big Query in Derived Tables. 
@@ -21,7 +21,7 @@ SQL based data cleaning and processing code is available on the SQL folder. Inpu
 To Run the analysis we need, Pivoted Vitals,Sofa Scores which includes Vasopressors (including Vasopressin),Labs and Fluids. The RL cohort is included in terms on icustay ids for convenience.
 
 
-### Reinforcement Learning
+## Reinforcement Learning
 For the RL implemntations, for convenience, I had saved states (which includes derived states), actions and rewards in (a rather large) csv file. This makes the replay buffer/batching straightforward application of PyTorch Dataset and Dataloader.
 
 
