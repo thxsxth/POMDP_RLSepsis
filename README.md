@@ -1,4 +1,4 @@
-# Reinforcement Learning based Learning of Dynamic Sepsis Treatment Strategies
+# Reinforcement Learning based Learning of Dynamic Sepsis Treatment Strategies, in a Partially Observed MDP setting
 
 ## Still work in progress
 #### Progress
