@@ -1,6 +1,6 @@
 # Reinforcement Learning based Learning of Dynamic Sepsis Treatment Strategies, in a Partially Observed MDP setting
 
-This repository conatins code for a Continous Action Reinforcement Learning based Dynamic Treatment learning, respecting partial observability of patient data for Sepsis Treatment
+This repository conatins code for a Continous Action Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment.
 
 ## Still work in progress
 
