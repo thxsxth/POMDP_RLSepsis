@@ -25,6 +25,8 @@ Since the labs are much more sparse, we use a denoising stacked sequential autoe
 ### Reinforcement Learning
 For the RL implemntations, for convenience, I had saved states (which includes derived states), actions and rewards in (a rather large) csv file. This makes the replay buffer/batching straightforward application of PyTorch Dataset and Dataloader.
 
+Used Continous Batch Constrained Deep Q Learning [BCQ] and TD3 [TD3] (with some minor modifications) as the DRL alogrithms
+
 
 
 
@@ -35,3 +37,5 @@ For the RL implemntations, for convenience, I had saved states (which includes d
 
   [schema]:<https://mit-lcp.github.io/mimic-schema-spy/index.html>
    [mimic]:<https://mimic.physionet.org/mimicdata>
+   [TD3]:<https://arxiv.org/pdf/1802.09477.pdf>
+   [BCQ]:<https://arxiv.org/abs/1812.02900>
