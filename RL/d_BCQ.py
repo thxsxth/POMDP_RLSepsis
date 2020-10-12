@@ -3,7 +3,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+"""
+Discrete BCQ algorithm implementation in taken from author's implementation with minor modifications 
+https://github.com/sfujim/BCQ
+"""
 
 class FC_Q(nn.Module):
 	def __init__(self, state_dim, num_actions,q_layers=4,i_layers=4):
