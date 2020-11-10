@@ -44,9 +44,15 @@ def get_trajectory(pat):
   pat_fluids=input_fluids[input_fluids.icustay_id==pat].set_index('charttime')
   pat_sofa=sofa[sofa.icustay_id==pat].set_index('endtime').resample('H').last().ffill()
 
+  pat_vaso=pd.concat([vaso_cv[vaso_cv.icustay_id==pat].set_index('starttime').resample('H').last(),
+           vaso_MV[vaso_MV.icustay_id==pat].set_index('starttime').resample('H').mean().fillna(0)]).resample('H').last().fillna(0)
+
+  pat_vaso['Vaso_rate']=pat_vaso['rate_std']+pat_vaso['vaso_rate']
+
+  pat_vaso=pat_vaso[['icustay_id','Vaso_rate']]
   
-  pat_sofa=pd.concat([pat_sofa,pat_fluids]).resample('H').sum()[['liver_24hours','cardiovascular_24hours',
-                                      'cns_24hours','renal_24hours','SOFA_24hours','Vaso','volume']]
+  pat_sofa=pd.concat([pat_sofa,pat_fluids,pat_vaso]).resample('H').sum()[['liver_24hours','cardiovascular_24hours',
+                                      'cns_24hours','renal_24hours','SOFA_24hours','Vaso_rate','volume']]
 
   pat_vitals=vitals[vitals.icustay_id==pat].set_index('charttime')[['HeartRate','SysBP','DiasBP',	'MeanBP','RespRate','SpO2','TempC']]
   
