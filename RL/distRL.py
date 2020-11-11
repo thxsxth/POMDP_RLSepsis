@@ -69,8 +69,8 @@ class dist_DQN(object):
     self.delta = (self.v_max - self.v_min) / (self.atoms - 1)
 
 
-    self.z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
-    self.z_dist = torch.unsqueeze(self.z_dist, 2).float()
+#     self.z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
+#     self.z_dist = torch.unsqueeze(self.z_dist, 2).float()
 
 
 
