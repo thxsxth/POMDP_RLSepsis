@@ -69,6 +69,10 @@ class dist_DQN(object):
     self.delta = (self.v_max - self.v_min) / (self.atoms - 1)
 
 
+    self.z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
+    self.z_dist = torch.unsqueeze(self.z_dist, 2).float()
+
+
 
   def train_epoch(self,data_loader,it=0):
 
@@ -155,5 +159,21 @@ class dist_DQN(object):
       Q_exp = torch.matmul(Q_dist, z_dist).squeeze(1)
       a_star = torch.argmax(Q_exp, dim=1)
 
-      return a_star
+    return a_star
+
+
+  def get_exp_vals(self,state):
+    batch_size=state.shape[0]
+
+    Q_dist, _ = model.Q(states)
+ 
+    Q_exp = torch.matmul(Q_dist, self.z_dist).squeeze(1)
+	
+    return Q_exp
+
+
+  
+
+
+
 
