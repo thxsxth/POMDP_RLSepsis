@@ -166,6 +166,9 @@ class dist_DQN(object):
     batch_size=state.shape[0]
 
     Q_dist, _ = model.Q(states)
+    
+    z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
+    z_dist = torch.unsqueeze(z_dist, 2).float()
  
     Q_exp = torch.matmul(Q_dist, self.z_dist).squeeze(1)
 	
