@@ -20,10 +20,10 @@ device='cuda' if torch.cuda.is_available() else 'cpu'
 vitals=pd.read_csv('Vitals/Vitals.csv',parse_dates=['charttime']) #pivoted vitals
 # sofa=pd.read_csv('../pivoted_sofa/pivoted_sofa.csv',parse_dates=['endtime','starttime']) #pivoted sofa
 labs=pd.read_csv('pivoted_labs/Pivoted_labs.csv',parse_dates=['charttime'])
-sofa=pd.read_csv('../pivoted_sofa/sofa_with_vaso3.csv',parse_dates=['endtime','starttime'])
+sofa=pd.read_csv('./pivoted_sofa/sofa_with_vaso3.csv',parse_dates=['endtime','starttime'])
 
-# sofa['Vaso']=sofa['rate_norepinephrine'].add(0.1*sofa['rate_dopamine'],fill_value=0).add(sofa['rate_epinephrine'],fill_value=0)
-# sofa['Vaso']=sofa['Vaso'].add(0.1*sofa['rate_dobutamine'],fill_value=0).add(10*sofa['rate_vasopressin'],fill_value=0).fillna(0)
+#sofa['Vaso']=sofa['rate_norepinephrine'].add(0.1*sofa['rate_dopamine'],fill_value=0).add(sofa['rate_epinephrine'],fill_value=0)
+#sofa['Vaso']=sofa['Vaso'].add(0.1*sofa['rate_dobutamine'],fill_value=0).add(10*sofa['rate_vasopressin'],fill_value=0).fillna(0)
 
 vitals['TempC']=vitals['TempC'].ffill()
 sofa['GCS_min']=sofa['GCS_min'].ffill()
@@ -37,18 +37,36 @@ admissions=pd.read_csv('admissions.csv',parse_dates=['ADMITTIME','DISCHTIME','DE
 admissions=admissions.set_index('icustay_id').sort_index()
 co['death_time']=admissions['DEATHTIME']
 
-input_cv=pd.read_csv('./Fluids/cleaned_input_cv.csv',parse_dates=['charttime']) 
-input_mv=pd.read_csv('./Fluids/input_eventsMV.csv',parse_dates=['starttime','endtime'])
+vaso_cv=pd.read_csv('./pivoted_sofa/Vaso_CV.csv',parse_dates=['charttime'])
+vaso_MV=pd.read_csv('./pivoted_sofa/Vaso_MV.csv',parse_dates=['endtime','starttime'])
 
-input_cv=input_cv[['icustay_id','charttime','tev']]
-input_mv=input_mv[['icustay_id','endtime','tev']]
-input_mv['tev_mv']=input_mv['tev']
-input_mv['charttime']=input_mv['endtime']
-input_mv=input_mv.drop('tev',axis=1)
-input_fluids=input_mv.merge(input_cv,on=['icustay_id','charttime'],how='outer')[['icustay_id','charttime','tev','tev_mv']]
+vaso_cv['starttime']=vaso_cv['charttime']
+
+fluids_cv=pd.read_csv('./pivoted_sofa/fluids_CV.csv',parse_dates=['charttime'])
+fluids_MV=pd.read_csv('./pivoted_sofa/fluids_MV.csv',parse_dates=['endtime','starttime'])
+
+fluids_cv['starttime']=fluids_cv['charttime']
 
 
-input_fluids['volume']=input_fluids['tev'].add(input_fluids['tev_mv'],fill_value=0)
+# input_cv=pd.read_csv('./Fluids/cleaned_input_cv.csv',parse_dates=['charttime']) 
+# input_mv=pd.read_csv('./Fluids/input_eventsMV.csv',parse_dates=['starttime','endtime'])
+
+# input_cv=input_cv[['icustay_id','charttime','tev']]
+# input_mv=input_mv[['icustay_id','endtime','tev']]
+# input_mv['tev_mv']=input_mv['tev']
+# input_mv['charttime']=input_mv['endtime']
+# input_mv=input_mv.drop('tev',axis=1)
+# input_fluids=input_mv.merge(input_cv,on=['icustay_id','charttime'],how='outer')[['icustay_id','charttime','tev','tev_mv']]
+
+
+# input_fluids['volume']=input_fluids['tev'].add(input_fluids['tev_mv'],fill_value=0)
+
+
+def get_mini_batch_mask(mini_batch, seq_lengths):
+    mask = torch.zeros(mini_batch.shape[0:2])
+    for b in range(mini_batch.shape[0]):
+        mask[b, 0:seq_lengths[b]] = torch.ones(seq_lengths[b])
+    return mask.to(device)
 
 class modeling_dataset(Dataset):
   """
@@ -69,16 +87,28 @@ class modeling_dataset(Dataset):
   def __getitem__(self,idx):
     #Get Patient from the index
     pat=self.ids[idx]
-    pat_fluids=input_fluids[input_fluids.icustay_id==pat].set_index('charttime')
-    pat_sofa=sofa[sofa.icustay_id==pat].set_index('endtime')
+    # pat_fluids=input_fluids[input_fluids.icustay_id==pat].set_index('charttime')
+    pat_sofa=sofa[sofa.icustay_id==pat].set_index('endtime').resample('H').last().ffill()
     pat_sofa=pd.concat([pat_sofa,pat_fluids]).resample('H').sum()
+    
+    pat_vaso=pd.concat([vaso_cv[vaso_cv.icustay_id==pat].set_index('starttime').resample('H').last(),
+           vaso_MV[vaso_MV.icustay_id==pat].set_index('starttime').resample('H').mean().fillna(0)]).resample('H').last              ().fillna(0)
+    
+    pat_vaso['vaso_rate']=pat_vaso['rate_std']+pat_vaso['vaso_rate']
+
+    pat_vaso=pat_vaso[['icustay_id','vaso_rate']]
+    
+    pat_fluids=pd.concat([fluids_cv[fluids_cv.icustay_id==pat].set_index('starttime').resample('H').sum(),
+           fluids_MV[fluids_MV.icustay_id==pat].set_index('starttime').resample('H').sum().fillna(0)]).resample('H').last        ().fillna(0)
+
+    pat_fluids['volume']=pat_fluids['tev_mv']+pat_fluids['tev_cv']
 
     pat_vitals=vitals[vitals.icustay_id==pat].set_index('charttime')
     pat_labs=labs[labs.icustay_id==pat]
     pat_df=pd.concat([pat_vitals,
-                              pat_sofa]).resample('H').last()[['HeartRate','SysBP','DiasBP',	'MeanBP','RespRate','SpO2','TempC',
+                              pat_sofa,pat_vaso]).resample('H').last()[['HeartRate','SysBP','DiasBP',	'MeanBP','RespRate','SpO2','TempC',
                                       'liver_24hours','cardiovascular_24hours',
-                                      'cns_24hours','renal_24hours','SOFA_24hours','volume','Vaso']].resample('H').last()
+                                      'cns_24hours','renal_24hours','SOFA_24hours','volume','vaso_rate']].resample('H').last()
 
     dead=co.loc[pat].HOSPITAL_EXPIRE_FLAG==1
     if co.loc[pat].HOSPITAL_EXPIRE_FLAG==1:
@@ -96,8 +126,8 @@ class modeling_dataset(Dataset):
           pat_df=pat_df.iloc[k:k+T,:]
 
     
-    treatments=torch.FloatTensor(pat_df[['Vaso','volume']].values).to(device)     
-    trajectory=torch.FloatTensor(pat_df.drop(['Vaso','volume'],axis=1).values).to(device)
+    treatments=torch.FloatTensor(pat_df[['vaso_rate','volume']].values).to(device)     
+    trajectory=torch.FloatTensor(pat_df.drop(['vaso_rate','volume'],axis=1).values).to(device)
     Obs=torch.FloatTensor(pat_df[['HeartRate','SysBP','DiasBP',	'MeanBP']].values).to(device)
     # Obs=torch.FloatTensor(pat_df[['HeartRate','SysBP','DiasBP',	'MeanBP','SpO2','TempC']].values).to(device)         
     
