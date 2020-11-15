@@ -1,7 +1,19 @@
 -- This code is derived from https://gitlab.doc.ic.ac.uk/AIClinician/AIClinician/-/blob/master/AIClinician_Data_extract_MIMIC3_140219.ipynb
 -- with some minor modfications
 
-with t1 as
+
+WITH co AS
+(
+  select ih.icustay_id, ie.hadm_id
+  , hr
+  -- start/endtime can be used to filter to values within this hour
+  , DATETIME_SUB(ih.endtime, INTERVAL '1' HOUR) AS starttime
+  , ih.endtime
+  from `physionet-data.mimiciii_derived.icustay_hours` ih
+  INNER JOIN `physionet-data.mimiciii_clinical.icustays` ie
+    ON ih.icustay_id = ie.icustay_id
+),
+fluids_mv as(with t1 as
 (
 select icustay_id, starttime, endtime, itemid, amount, rate,
 case when itemid in (30176,30315) then amount *0.25
@@ -21,4 +33,36 @@ where icustay_id is not null and amount is not null and itemid in (225158,225943
 
 select icustay_id, starttime, endtime, itemid, round(cast(amount as numeric),3) as amount,round(cast(rate as numeric),3) as rate,round(cast(tev as numeric),3) as tev -- total equiv volume
 from t1
-order by icustay_id, starttime, itemid
+order by icustay_id, starttime, itemid)
+
+,scorecomp as
+(
+  select
+      co.icustay_id
+    , co.hr
+    , co.starttime, co.endtime    
+    , MV.tev as tev_mv
+   
+
+  from co
+
+  left join  fluids_mv MV
+    on co.icustay_id = MV.icustay_id
+    and co.endtime > MV.starttime
+    and co.endtime <= MV.endtime
+ 
+),
+score_final as(
+select s.*
+FROM scorecomp s
+WINDOW W as
+  (
+    PARTITION BY icustay_id
+    ORDER BY hr
+    ROWS BETWEEN 23 PRECEDING AND 0 FOLLOWING
+  )
+)
+
+select * from score_final
+where hr >= 0 
+order by icustay_id, hr;
