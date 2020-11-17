@@ -175,6 +175,64 @@ class dist_DQN(object):
     return Q_exp
 
 
+filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
+class ensemble_distDQN(object):
+  def __init__(self):
+    self.models=[model]
+    for k in range(len(filenames)):
+      model_=dist_DQN(v_max=18,v_min=-18)
+      load_model(model_,filenames[k])
+      self.models.append(model_)
+
+    # self.weights=[1]+22*[0.4]+6*[0.65]
+    self.weights=[1]*len(self.models)
+
+  def get_ensemble_exp_values(self,state):
+    exp_val=model.get_exp_vals(state).squeeze(-1)
+    for j in range(1,len(self.models)):
+      exp_val+=self.models[j].get_exp_vals(state).squeeze(-1)*self.weights[j]
+
+    return exp_val/sum(self.weights)
+
+  def set_weights(self,weights):
+    self.weights=weights
+
+
+  def get_ensemble_action(self,state,lam=False):
+    exp_vals=self.get_ensemble_exp_values(state)
+    if lam:
+      assert lam>=0
+      exp_vals+=-lam*self.get_uncertainty(state)
+    a_star = torch.argmax(exp_vals, dim=1)
+    return a_star
+
+  def get_kl_loss(self,Q,logQ,logQ1):
+    """
+    Q should be the reference
+
+    """
+    kld=torch.sum(torch.mul(Q, logQ-logQ1),-1)
+  
+  
+    return kld
+
+  def get_uncertainty(self,state):
+      Q,logQ=self.models[0].Q(state)
+      kld=0    
+      for i in range(1,len(self.models)):
+          Q1,logQ1=self.models[i].Q(state)
+          kld+=self.get_kl_loss(Q,logQ,logQ1)
+
+      return kld/len(self.models)
+
+     
+
+
+
+
+
+
+
   
 
 
