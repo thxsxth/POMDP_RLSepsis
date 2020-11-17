@@ -27,7 +27,9 @@ Since the labs are much more sparse, we use a denoising stacked sequential autoe
 ### Reinforcement Learning
 For the RL implemntations, for convenience, I had saved states (which includes derived states), actions and rewards in (a rather large) csv file. This makes the replay buffer/batching straightforward application of PyTorch Dataset and Dataloader.
 
-Used Continous Batch Constrained Deep Q Learning ([BCQ]) and [Discrete BCQ] (with some minor modifications) as the DRL alogrithms. BCQ is an offline batch RL algorithm with as the name suggests regulaizes state actions pairs based on what is included in the batch.
+Initially tried Continous Batch Constrained Deep Q Learning ([BCQ]) and [Discrete BCQ] (with some minor modifications) as the DRL alogrithms. BCQ is an offline batch RL algorithm with as the name suggests regulaizes state actions pairs based on what is included in the batch.
+
+Final work uses Distributinal RL (C51) algorithm, further we use Uncertainty Quantification to quatify epistemic uncertainty.
 
 
 
