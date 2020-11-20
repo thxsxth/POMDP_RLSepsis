@@ -130,39 +130,39 @@ def plot_feature_ensm_treat(pat,df=df,feature='SBP',size=(10,10),lam=False):
   
 import plotly.graph_objects as go
 
-actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
-def plot_feature_uncertainty(pat,df=df,feat=None,size=(20,20)):
+# actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
+# def plot_feature_uncertainty(pat,df=df,feat=None,size=(20,20)):
              
     
 
-  pat_df=df[df.Pat==pat]
-  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
+#   pat_df=df[df.Pat==pat]
+#   state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
   
-  exps=model.get_exp_vals(state).squeeze(-1).detach().cpu().numpy()  #T*9
-  cols=['Uncertainty_act_{}'.format(i) for i in range(9)]
-  uncertains=pat_df[cols].values
+#   exps=model.get_exp_vals(state).squeeze(-1).detach().cpu().numpy()  #T*9
+#   cols=['Uncertainty_act_{}'.format(i) for i in range(9)]
+#   uncertains=pat_df[cols].values
   
-  fig = go.Figure()
-  for k in range(9):
-     label='Expected Values for '+ actions[k]
+#   fig = go.Figure()
+#   for k in range(9):
+#      label='Expected Values for '+ actions[k]
     
-    #  label="Expected Values for Action : "+actions[k]
-     fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]), y=exps[:,k],
-                    mode='lines+markers', marker=dict(size=uncertains[:,k]*10),
-                    name=label))
+#     #  label="Expected Values for Action : "+actions[k]
+#      fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]), y=exps[:,k],
+#                     mode='lines+markers', marker=dict(size=uncertains[:,k]*10),
+#                     name=label))
      
-  cols=['coral','green','darkgrey']
+#   cols=['coral','green','darkgrey']
         
         
   
-  if feat:
-    for i,feature in enumerate(feat):
-      fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]),y=pat_df[feature].values,
-                    mode='lines',
-                    name=feature,marker=dict(color=cols[i])))
+#   if feat:
+#     for i,feature in enumerate(feat):
+#       fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]),y=pat_df[feature].values,
+#                     mode='lines',
+#                     name=feature,marker=dict(color=cols[i])))
 
 
-  fig.show()
+#   fig.show()
  
   
   
@@ -214,7 +214,50 @@ def plot_polar_plots(pat,save=False,df=df,times=[0,-12,-5]):
       fig.write_image("radarplot_{}.jpg".format(pat))
       
       
-      
+
+
+actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
+def plot_feature_uncertainty(pat,df=df,feat=None,size=(20,20),marker_only=False):
+             
+    
+
+  pat_df=df[df.Pat==pat]
+  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
+  
+  exps=model.get_exp_vals(state).squeeze(-1).detach().cpu().numpy()  #T*9
+  cols=['Uncertainty_act_{}'.format(i) for i in range(9)]
+  uncertains=pat_df[cols].values
+  
+  fig = go.Figure()
+  for k in range(9):
+     label='Expected Values for '+ actions[k]
+    
+    #  label="Expected Values for Action : "+actions[k]
+     fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]), y=exps[:,k],
+                    mode='lines+markers', marker=dict(size=uncertains[:,k]*10),
+                    name=label))
+     
+  cols=['peru','darkslategray','darkcyan']
+        
+        
+  
+  if feat:
+    for i,feature in enumerate(feat):
+      style='lines+markers'
+      if marker_only:
+        style='markers'
+      if feature=='SOFA':
+        style='lines+markers'
+      fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]),y=pat_df[feature].values,
+                    mode=style,
+                    name=feature,marker=dict(color=cols[i],size=4,symbol='x')))
+
+
+  fig.show()
+ 
+  
+  
+
       
       
  
