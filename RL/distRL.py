@@ -202,7 +202,7 @@ class dist_DQN(object):
     return Q_exp
 
 
-# filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
+filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
 class ensemble_distDQN(object):
   def __init__(self,model,filenames,I_filename):
     self.models=[model]
@@ -257,18 +257,30 @@ class ensemble_distDQN(object):
       return kld/len(self.models)
 
   def uncertainty_aware_actions(self,state,beta1,beta2,lam):
-     assert beta1>=0 and beta2>=0 and lamb>=0
+     assert beta1>=0 and beta2>=0 and lam>=0
      exp_vals=self.models[0].get_exp_vals(state).squeeze(-1) #Batch_size*|A|
-     exp_score=torch.exp(beta1*(exp_vals-exp_vals.max(dim=1)[0]))
+     exp_score=torch.exp(beta1*(exp_vals-exp_vals.max(dim=1)[0].view(-1,1)))
 
-     behav_probs=self.I(state)
-     behav_score=torch.exp(beta2*(behav_probs-behav_probs.max(dim=1)[0]))
+     behav_probs,_=self.I(state)
+     behav_probs=behav_probs.exp()
+     behav_score=torch.exp(beta2*(behav_probs-behav_probs.max(dim=1)[0].view(-1,1)))
 
      uncertainty_score=-lam*self.get_uncertainty(state)
-
-     action=uncertainty_score.max(dim=1)[1]
+     
+     total_score=exp_score+behav_score+uncertainty_score
+     action=total_score.max(dim=1)[1]
 
      return action, (exp_score,behav_score,uncertainty_score)
+
+
+
+
+
+     
+
+
+
+
 
 
 
