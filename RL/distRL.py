@@ -16,6 +16,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device='cuda' if torch.cuda.is_available() else 'cpu'
 print('Done')
 
+def load_model(model,PATH):
+  checkpoint=torch.load(PATH)
+  model.Q.load_state_dict(checkpoint['Q_state_dict'])
+
 
 class FC_I(nn.Module):
 	def __init__(self, state_dim, num_actions,q_layers=4,i_layers=4):
@@ -186,18 +190,18 @@ class dist_DQN(object):
       Q_exp = torch.matmul(Q_dist, z_dist).squeeze(1)
       a_star = torch.argmax(Q_exp, dim=1)
 
-    return a_star
+      return a_star
 
 
   def get_exp_vals(self,state):
     batch_size=state.shape[0]
 
-    Q_dist, _ = model.Q(state)
+    Q_dist, _ = self.models[0].Q(state)
     
     z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
     z_dist = torch.unsqueeze(z_dist, 2).float()
  
-    Q_exp = torch.matmul(Q_dist, self.z_dist).squeeze(1)
+    Q_exp = torch.matmul(Q_dist, z_dist).squeeze(1)
 	
     return Q_exp
 
@@ -219,7 +223,7 @@ class ensemble_distDQN(object):
     self.weights=[1]*len(self.models)
 
   def get_ensemble_exp_values(self,state):
-    exp_val=model.get_exp_vals(state).squeeze(-1)
+    exp_val=self.models[0].get_exp_vals(state).squeeze(-1)
     for j in range(1,len(self.models)):
       exp_val+=self.models[j].get_exp_vals(state).squeeze(-1)*self.weights[j]
 
