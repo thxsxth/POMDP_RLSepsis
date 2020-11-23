@@ -17,6 +17,33 @@ device='cuda' if torch.cuda.is_available() else 'cpu'
 print('Done')
 
 
+class FC_I(nn.Module):
+	def __init__(self, state_dim, num_actions,q_layers=4,i_layers=4):
+		super(FC_I, self).__init__()
+		# self.q1 = nn.Linear(state_dim, 512)
+		# self.q2 = nn.Linear(512, 512)
+		# self.q3 = nn.Linear(512, num_actions)
+    
+		self.i1,self.hiddens = nn.Linear(state_dim,512),nn.ModuleList([nn.Sequential(nn.Linear(512,512),nn.ReLU()) for _ in range(3)])
+    
+		self.i2 = nn.Linear(512, 256)
+	
+		self.i3 = nn.Linear(256, num_actions)		
+
+
+	def forward(self, state):
+		# q = F.relu(self.q1(state))
+		# q = F.relu(self.q2(q))
+
+		i = F.relu(self.i1(state))
+		for layer in self.hiddens:
+			i=layer(i)
+		i = F.relu(self.i2(i))
+		i = F.relu(self.i3(i))
+		return F.log_softmax(i, dim=1), i
+
+
+
 class DistributionalDQN(nn.Module):
     def __init__(self, state_dim, n_actions, N_ATOMS):
         super(DistributionalDQN, self).__init__()
@@ -175,15 +202,19 @@ class dist_DQN(object):
     return Q_exp
 
 
-filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
+# filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
 class ensemble_distDQN(object):
-  def __init__(self):
+  def __init__(self,model,filenames,I_filename):
     self.models=[model]
     for k in range(len(filenames)):
       model_=dist_DQN(v_max=18,v_min=-18)
       load_model(model_,filenames[k])
       self.models.append(model_)
-
+   
+    self.I=FC_I(41,9)
+    
+    checkpoint=torch.load(I_filename)
+    self.I.load_state_dict(checkpoint['state_dict'])  
     # self.weights=[1]+22*[0.4]+6*[0.65]
     self.weights=[1]*len(self.models)
 
@@ -224,6 +255,30 @@ class ensemble_distDQN(object):
           kld+=self.get_kl_loss(Q,logQ,logQ1)
 
       return kld/len(self.models)
+
+  def uncertainty_aware_actions(self,state,beta1,beta2,lam):
+     assert beta1>=0 and beta2>=0 and lamb>=0
+     exp_vals=self.models[0].get_exp_vals(state).squeeze(-1) #Batch_size*|A|
+     exp_score=torch.exp(beta1*(exp_vals-exp_vals.max(dim=1)[0]))
+
+     behav_probs=self.I(state)
+     behav_score=torch.exp(beta2*(behav_probs-behav_probs.max(dim=1)[0]))
+
+     uncertainty_score=-lam*self.get_uncertainty(state)
+
+     action=uncertainty_score.max(dim=1)[1]
+
+     return action, (exp_score,behav_score,uncertainty_score)
+
+
+
+
+
+     
+
+
+
+
 
      
 
