@@ -32,10 +32,11 @@ Initially tried Continous Batch Constrained Deep Q Learning ([BCQ]) and [Discret
 Final work uses Distributinal RL (C51) algorithm, further we use uncertainty Quantification to quatify epistemic uncertainty.
 
 # Redproducing Results
-To reproduce our results, you would first need to get access to MIMIC-iii data, and by using SQL queries in SQL folder (or otherwise), derive equivalent vasopressor and fluid treatments. Careview and Metavision tables have different formats of input events. Once this is done you could use the PyTorch dataset, dataloader classes to train the representation learning modules. Finally to run RL, you need to way to generate  $(s,a,s',reward,done)$ tuples, where $s$ includes the inferred hidden states. For this work, we save the states in a csv file, and then used a Pytorch Dataloader to generate batches for RL/
+To reproduce our results, you would first need to get access to MIMIC-iii data, and by using SQL queries in SQL folder (or otherwise), derive equivalent vasopressor and fluid treatments. Careview and Metavision tables have different formats of input events. Once this is done you could use the PyTorch dataset, dataloader classes to train the representation learning modules. 
 
+Finally to run RL, you need to way to generate  (s,a,s',reward,done) tuples, where s includes the inferred hidden states. For this work, we save the states in a csv file, and then used a Pytorch Dataloader to generate batches for RL. A basic/naive way of this process is shown in the RL/RL_csv.ipynb notebook.
 
-
+Refer RL folder for RL modules. distRL has all the RL modules.
 
 
 
