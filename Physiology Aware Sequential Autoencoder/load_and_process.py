@@ -89,7 +89,7 @@ class modeling_dataset(Dataset):
     pat=self.ids[idx]
     # pat_fluids=input_fluids[input_fluids.icustay_id==pat].set_index('charttime')
     pat_sofa=sofa[sofa.icustay_id==pat].set_index('endtime').resample('H').last().ffill()
-    pat_sofa=pd.concat([pat_sofa,pat_fluids]).resample('H').sum()
+#     pat_sofa=pd.concat([pat_sofa,pat_fluids]).resample('H').sum()
     
     pat_vaso=pd.concat([vaso_cv[vaso_cv.icustay_id==pat].set_index('starttime').resample('H').last(),
            vaso_MV[vaso_MV.icustay_id==pat].set_index('starttime').resample('H').mean().fillna(0)]).resample('H').last              ().fillna(0)
@@ -106,7 +106,7 @@ class modeling_dataset(Dataset):
     pat_vitals=vitals[vitals.icustay_id==pat].set_index('charttime')
     pat_labs=labs[labs.icustay_id==pat]
     pat_df=pd.concat([pat_vitals,
-                              pat_sofa,pat_vaso]).resample('H').last()[['HeartRate','SysBP','DiasBP',	'MeanBP','RespRate','SpO2','TempC',
+                              pat_sofa,pat_vaso,pat_fluids]).resample('H').last()[['HeartRate','SysBP','DiasBP',	'MeanBP','RespRate','SpO2','TempC',
                                       'liver_24hours','cardiovascular_24hours',
                                       'cns_24hours','renal_24hours','SOFA_24hours','volume','vaso_rate']].resample('H').last()
 
