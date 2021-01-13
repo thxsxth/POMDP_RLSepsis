@@ -1,17 +1,17 @@
-# Unifying Mechanistic Modelling and Deep Reinforcement Learning to learn Dynamic Sepsis Treatment Strategies, in a Partially Observed MDP setting.
+# Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment.
 
-This repository conatins code for Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment. We use a novel Cardiovascular Physiology based autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies.
+This repository conatins code for Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment. We use a novel Cardiovascular Physiology driven autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies. 
 
 ## Still work in progress
 
 ### Data
 Open [mimic] database was used as the data source. Relationships of the schema can be found [here][schema]. You need permission to access MIMIC Data, more information on this is given on their website. After getting access I would recommend using Big Query MIMIC project to quickly access already processed schema.
 
-Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related measurements and (Most Vasopressors) and Vitals are all available on Big Query in Derived Tables. 
+Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related scores and Vitals are all available on Big Query in Derived Tables. 
 
-SQL based data cleaning and processing code is available on the SQL folder. Input_cv.sql and Input_mv.sql are the SQL files used to extract the fluids and the equivalent volumes from BigQuery. (CV and MV denotes Carevue and MetaVision as inputs are in two seperate databases). These are combined before using for Modelling/RL.
+SQL based data cleaning and processing code is available on the SQL folder. These are combined before using for Modelling/RL.
 
-To Run the analysis we need, Pivoted Vitals,Sofa Scores which includes Vasopressors (including Vasopressin),Labs and Fluids. The RL cohort is included in terms on icustay ids for convenience.
+To Run the analysis we need, Pivoted Vitals,Sofa Scores and hourly vasopressor and fluid treatments. The RL cohort is included in terms on icustay ids for convenience.
 
 
 ## Progress
@@ -29,11 +29,14 @@ For the RL implemntations, for convenience, I had saved states (which includes d
 
 Initially tried Continous Batch Constrained Deep Q Learning ([BCQ]) and [Discrete BCQ] (with some minor modifications) as the DRL alogrithms. BCQ is an offline batch RL algorithm with as the name suggests regulaizes state actions pairs based on what is included in the batch.
 
-Final work uses Distributinal RL (C51) algorithm, further we use Uncertainty Quantification to quatify epistemic uncertainty.
+Final work uses Distributinal RL (C51) algorithm, further we use uncertainty Quantification to quatify epistemic uncertainty.
 
+# Reproducing Results
+To reproduce our results, you would first need to get access to MIMIC-iii data, and by using SQL queries in SQL folder (or otherwise), derive equivalent vasopressor and fluid treatments. Careview and Metavision tables have different formats of input events. Once this is done you could use the PyTorch dataset, dataloader classes to train the representation learning modules. 
 
+Finally to run RL, you need to way to generate  (s,a,s',reward,done) tuples, where s includes the inferred hidden states. For this work, we save the states in a csv file, and then used a Pytorch Dataloader to generate batches for RL. A basic/naive way of this process is shown in the RL/RL_csv.ipynb notebook.
 
-
+Refer RL folder for RL modules. distRL has all the RL modules.
 
 
 
