@@ -1,7 +1,7 @@
 # Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment.
 
 This repository conatins code for Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment.
-We use a novel Cardiovascular Physiology driven autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies. Further we define model uncertainty and learn the RL agent
+We use a novel Cardiovascular Physiology driven autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies. Further we define model uncertainty and we instruct our RL agent to consider it's own uncertainty. The Figure below shows the overall decision structure. Given a patient state, we ask the agent to produce value distributions associated with each (discretized) action, how uncertain it is on it's own results and what a clinican may do (based on behavior cloning). Then all these information is then combined into making the decision.
 
 ![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/overall%20sturcture%20(1).png "Overall")
 
@@ -17,13 +17,13 @@ SQL based data cleaning and processing code is available on the SQL folder. Thes
 To Run the analysis we need, Pivoted Vitals,Sofa Scores and hourly vasopressor and fluid treatments. The RL cohort is included in terms on icustay ids for convenience.
 
 
-## Progress
+## Components
 ### Physiology Aware Sequential Autoencoder
-We propose an inference structure which could infer patient and intervention specific cardiovascular states, by a Sequential AutoEncoder, which is implicitly regularized by constraining the latent representation to have phyisilogical meaning and the decoder to be a mathematical model. This has the benefit from a simplicity, but has the potential to give useful Cardiovascular information in the ICU settings.
+We propose an inference structure which could infer patient and intervention specific cardiovascular states, by a Sequential AutoEncoder, which is implicitly regularized by constraining the latent representation to have phyisilogical meaning and the decoder to be a mathematical model. This has the benefit from a simplicity, but has the potential to give useful Cardiovascular information in the ICU settings. The folder Physiology Aware Sequential Autoencoder, contains the training and modules.
 
 
 ### Denoising GRU AutoEncoder for Labs
-Since the labs are much more sparse, we use a denoising stacked sequential autoencoder structure with low dimensional final hidden layer to encode the history of the labs, This is supposed to give a much better representation which then could be used as a state component in the (PO)MDP
+Since the labs are much more sparse, we use a denoising stacked sequential autoencoder structure with low dimensional final hidden layer to encode the history of the labs, This is supposed to give a much better representation which then could be used as a state component in the (PO)MDP. The code can be found under Lab Models
 
 
 
