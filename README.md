@@ -4,7 +4,7 @@ This repository conatins code for Reinforcement Learning based Dynamic Treatment
 We use a novel Cardiovascular Physiology driven autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies. Further we define model uncertainty and learn the RL agent
 
 ![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/overall%20sturcture%20(1).png "Overall")
-![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/auto_en_diag%20(1).png |=100x200)
+![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/auto_en_diag%20(1).png =100x200)
 
 
 ### Data
