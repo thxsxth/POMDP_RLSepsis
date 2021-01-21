@@ -42,10 +42,14 @@ Finally to run RL, you need to way to generate  (s,a,s',reward,done) tuples, whe
 Refer RL folder for RL modules. distRL has all the RL modules.
 
 
-
+# Code References:
+SQL queries regarding vasopressors and fluids were derived from [Komorowski et. al].
+Sepsis score realted queries were derived from [Spesis 3]
 
 
   [schema]:<https://mit-lcp.github.io/mimic-schema-spy/index.html>
    [mimic]:<https://mimic.physionet.org/mimicdata>
    [Discrete BCQ]:<https://arxiv.org/abs/1910.01708>
    [BCQ]:<https://arxiv.org/abs/1812.02900>
+   [Komorowski et. al]: <https://gitlab.doc.ic.ac.uk/AIClinician/AIClinician>
+   [Sepsis 3]:<https://github.com/alistairewj/sepsis3-mimic>
