@@ -44,7 +44,7 @@ Refer RL folder for RL modules. distRL has all the RL modules.
 
 # Code References:
 SQL queries regarding vasopressors and fluids were derived from [Komorowski et. al].
-Sepsis score realted queries were derived from [Spesis 3]
+Sepsis score realted queries were derived from [Sepsis 3]
 
 
   [schema]:<https://mit-lcp.github.io/mimic-schema-spy/index.html>
