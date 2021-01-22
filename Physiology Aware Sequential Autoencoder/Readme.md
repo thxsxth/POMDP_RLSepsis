@@ -2,7 +2,8 @@ The following image illustrates the archiecture of the physiology driven autoenc
 
 The notebook Physiology_informed_Sequential_AutoEncoder_(With_Denoising).ipynb presents training of thee physiologic model. load_and_process deals with the imports processing and defines the dataset and dataloader classes.
   
-
+### Note: 
+We have made state directories of the autoencoder available, training from sratch requires a low learning rate, and multiple epochs
 
 
 ![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/auto_en_diag%20(1).png)
