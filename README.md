@@ -1,6 +1,7 @@
 # Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment.
 
-This repository conatins code for Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment.
+This repository conatins code for Reinforcement Learning based Dynamic Treatment learning, respecting partial observability for Sepsis Treatment. Associated with the paper [Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment].
+
 We use a novel Cardiovascular Physiology driven autoencoder, with learns patient specific Cardiovasular states, this structure is expected to convey important Physiological information which can't be directly observed. We also use another denoising Autoencoder to represent the history of the labs, and then use Offline Reinforcement Learning to learn optimal treatment strategies. Further we define model uncertainty and we instruct our RL agent to consider it's own uncertainty. The Figure below shows the overall decision structure. Given a patient state, we ask the agent to produce value distributions associated with each (discretized) action, how uncertain it is on it's own results and what a clinican may do (based on behavior cloning). Then all these information is then combined into making the decision.
 
 ![alt text](https://github.com/thxsxth/POMDP_RLSepsis/blob/master/Images/overall%20sturcture%20(1).png "Overall")
@@ -53,3 +54,4 @@ Sepsis score realted queries were derived from [Sepsis 3]
    [BCQ]:<https://arxiv.org/abs/1812.02900>
    [Komorowski et. al]: <https://gitlab.doc.ic.ac.uk/AIClinician/AIClinician>
    [Sepsis 3]:<https://github.com/alistairewj/sepsis3-mimic>
+   [Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment.] :<https://arxiv.org/abs/2101.08477>
