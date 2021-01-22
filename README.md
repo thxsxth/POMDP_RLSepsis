@@ -54,4 +54,4 @@ Sepsis score realted queries were derived from [Sepsis 3]
    [BCQ]:<https://arxiv.org/abs/1812.02900>
    [Komorowski et. al]: <https://gitlab.doc.ic.ac.uk/AIClinician/AIClinician>
    [Sepsis 3]:<https://github.com/alistairewj/sepsis3-mimic>
-   [Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment] :<https://arxiv.org/abs/2101.08477>
+   [Unifying Cardiovascular Modelling with Deep Reinforcement Learning for Uncertainty Aware Control of Sepsis Treatment]:<https://arxiv.org/abs/2101.08477>
