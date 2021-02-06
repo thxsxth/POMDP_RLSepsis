@@ -91,10 +91,11 @@ class modeling_dataset(Dataset):
     pat_sofa=sofa[sofa.icustay_id==pat].set_index('endtime').resample('H').last().ffill()
 #     pat_sofa=pd.concat([pat_sofa,pat_fluids]).resample('H').sum()
     
-    pat_vaso=pd.concat([vaso_cv[vaso_cv.icustay_id==pat].set_index('starttime').resample('H').last(),
-           vaso_MV[vaso_MV.icustay_id==pat].set_index('starttime').resample('H').mean().fillna(0)]).resample('H').last              ().fillna(0)
+    pat_vaso=pd.concat([vaso_cv[vaso_cv.icustay_id==pat].set_index('starttime').resample('H').max(),
+           vaso_MV[vaso_MV.icustay_id==pat].set_index('starttime').resample('H').max().fillna(0)]).resample('H').max().fillna(0)
     
-    pat_vaso['vaso_rate']=pat_vaso['rate_std']+pat_vaso['vaso_rate']
+    #The two csv files had rate_std and vaso_rate to mean the same thing
+    pat_vaso['vaso_rate']=np.max(pat_vaso['rate_std'],pat_vaso['vaso_rate'])
 
     pat_vaso=pat_vaso[['icustay_id','vaso_rate']]
     
