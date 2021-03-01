@@ -14,7 +14,7 @@ import copy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device='cuda' if torch.cuda.is_available() else 'cpu'
-print('Done')
+
 
 def load_model(model,PATH):
   checkpoint=torch.load(PATH)
@@ -29,8 +29,8 @@ class FC_I(nn.Module):
 		# self.q3 = nn.Linear(512, num_actions)
     
 		self.i1,self.hiddens = nn.Linear(state_dim,512),nn.ModuleList([nn.Sequential(nn.Linear(512,512),nn.ReLU()) for _ in range(3)])
-    
-		self.i2 = nn.Linear(512, 256)
+               
+		self.i2,self.state_dim = nn.Linear(512, 256),state_dim
 	
 		self.i3 = nn.Linear(256, num_actions)		
 
@@ -88,7 +88,7 @@ class dist_DQN(object):
     self.Q =DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
     self.Q_target=copy.deepcopy(self.Q)
     self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=1e-5)
-
+    self.state_dim=state_dim
     self.tau = tau
     self.gamma=gamma
     self.v_min=v_min
