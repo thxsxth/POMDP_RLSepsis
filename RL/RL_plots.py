@@ -11,169 +11,127 @@ import torch.nn.functional as F
 import os
 import glob
 import copy
+import seaborn as sns
 
-import plotly.express as px
-import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+# from distRL import *
 
-from distRL import dist_DQN,ensemble_distDQN
-
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device='cuda' if torch.cuda.is_available() else 'cpu'
-print('Done')
-
-
-df=pd.read_csv('RL_new.csv')
-df=df.iloc[:,1:]
-print('Loaded')
-df['SOFA_']=df.SOFA
-df['SV_']=df.SV
-df['SV_C']=(df.SV_/df.C)
-df['CO']=(df.SV*df.HR)
-df['CO_C']=df.CO/df.C
-
-df['SV_C']=(df['SV_C']-df['SV_C'].mean())/(df['SV_C'].std())
-df['CO']=(df['CO']-df['CO'].mean())/(df['CO'].std())
-df['CO_C']=(df['CO_C']-df['CO_C'].mean())/(df['CO_C'].std())
-
-
-df['SV/C']=df['SV_C']
-df['CO/C']=df['CO_C']
-df['RC']=df['R']*df['C']
-df['SV_R']=df['R']*df['SV_']
-df['SV_R']=(df['SV_R']-df['SV_R'].mean())/df['SV_R'].std()
-
-
-temp=df.describe()
-means=temp.loc['mean'].values
-stds=temp.loc['std'].values
-
-cols=[0,1,2,3,4,5,6,7,11,37,38,40]
-
-df.iloc[:,cols]=(df.iloc[:,cols]-means[cols])/stds[cols]
-print('Normalized')
-
-
-def get_actions(df):
-  df['Fluids']=df['Fluids'].apply(lambda x:max(x,0))
-  Vaso_cuts,vaso_bins=pd.cut(df['Vaso'],bins=[-1e-6,1e-8/2,0.15,np.inf],labels=False,retbins=True)
-
-  df['Vaso_cuts']=Vaso_cuts.values
-  Fluids_cuts,fluid_bins=pd.cut(df['Fluids'],bins=[-1e-6,6.000000e-03/2,5.000000e+01,np.inf],labels=False,retbins=True)
-
-  df['Fluid_cuts']=Fluids_cuts.values
-  df['Fluid_cuts'].value_counts(normalize=True),df['Vaso_cuts'].value_counts(normalize=True)
-
-  all_acts=np.arange(9).reshape(3,3)
-
-
-  df['action']=all_acts[df.Vaso_cuts,df.Fluid_cuts]
-
-
-get_actions(df)
-
-ensm=ensemble_distDQN()
 
 import matplotlib.pyplot as plt
-def plot_feature_ensemble_exp_values(pat,df=df,feat=None,size=(20,20)):
+def plot_feature_exp_values(pat,df,model,ensm,feat=None,size=(10,10),filename=None):
+  """
+  model should have model.get_exp_vals method
+  ensm should have get_uncertainty method
+  df : Pandas.DataFrame and first state_dim columns should be the state
+
+  """
+
   
   legends=['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
-  colors=['cornflowerblue','royalblue','midnightblue','lightcoral','indianred','darkred','orange','chocolate','grey']  
-             
+  colors=['cornflowerblue','royalblue','midnightblue','gold','orange','tomato','lightcoral','crimson','darkred']  
+  feat_colors=['darkgreen','deeppink','darkturquoise']
     
   plt.figure(figsize=size)
   pat_df=df[df.Pat==pat]
-
-  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
+  state_dim=model.state_dim
+  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:state_dim].values).to(device)
   
-  exps=ensm.get_ensemble_exp_values(state) #T*9
+  exps=model.get_exp_vals(state).squeeze(-1)  #T*9
+  uncertains=ensm.get_uncertainty(state).detach().cpu().numpy()
 
   for k in range(9):
-     plt.plot(np.arange(state.shape[0]),exps[:,k].cpu().detach().numpy(),color=colors[k],linestyle='dotted',linewidth=1,label=legends[k],marker=".",markersize=4)
+     plt.plot(np.arange(state.shape[0]),exps[:,k].cpu().detach().numpy(),color=colors[k],linestyle='-',linewidth=0.6,label=legends[k],marker=".")
+     plt.scatter(np.arange(state.shape[0]),exps[:,k].cpu().detach().numpy(),color=colors[k],linewidths=1,marker=".",s=uncertains[:,k]*200)
 
   if feat:
-     plt.plot(np.arange(state.shape[0]),pat_df[feat].values,'g',linestyle=':',linewidth=1,marker='*',label='Standardized {}'.format(feat))
-     plt.hlines(df[feat].mean(),0,(pat_df.shape[0]),'k',label='Mean of {}'.format(feat))
+    for j,feature in enumerate(feat):
+     plt.plot(np.arange(state.shape[0]),pat_df[feature].values,linestyle=':',linewidth=2,marker='*',label='Standardized {}'.format(feature),markersize=5,color=feat_colors[j])
+    #  plt.hlines(df[feature].mean(),0,(pat_df.shape[0]),label='Mean of {}'.format(feature))
 
   
-  
+  plt.xlabel('Time Step (From ICU admission in hours)',fontsize=15)
+  plt.ylabel('Expected Value/Feature Value',fontsize=15)
+  title='Evolution of expected values of value distributions ' +'ICU stay ID :' +str(pat)
+  plt.title(title,fontsize=20)
   plt.legend()
   plt.show()
-  
+  if filename:
+    plt.savefig(filename)
 
-def plot_feature_ensm_treat(pat,df=df,feature='SBP',size=(10,10),lam=False):
+
+def plot_outputs(pat,params,df,model,ensm,save_file=False):
+  """
   
-  legends = ['Fluids for the Patient', 'Standardized {}'.format(feature),'Mean {}'.format(feature),'Vaso for the patient']
+  model should have model.get_exp_vals method
+  ensm should have get_uncertainty method
+  df : Pandas.DataFrame and first state_dim columns should be the state
+
+
+  """
+  fig = plt.figure(figsize=(60,20))
+  pat_df=df[df.Pat==pat]
+  state_dim=model.state_dim
+  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:state_dim].values).to(device)
+  acts=[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)] 
+  plt.subplots_adjust(left=None, bottom=0.1, right=None, top=3, wspace=None, hspace=None)
+  for i in range(1, len(params)+1):
+    
+    ax = fig.add_subplot(5,2, i)
+    legends = ['Fluids for the Patient','Vaso for the patient']
+    
+    
+    action,_=ensm.uncertainty_aware_actions(state,params[i-1][0],params[i-1][1],params[i-1][2])
+    fluids_pat=[acts[action[i]][1] for i in range(action.shape[0])]
+    vaso_pat=[acts[action[i]][0] for i in range(action.shape[0])]
+
+    ax.plot(np.arange(pat_df.shape[0]),fluids_pat,'k',linestyle='dashed',linewidth=3.5,label=legends[0],marker=".",markersize=8)
+    ax.plot(np.arange(pat_df.shape[0]),vaso_pat,'r',linestyle='dashed',linewidth=3.5,label=legends[1],marker=".",markersize=8)
+    ax.set_yticks([0,1,2])
+    ax.tick_params(labelsize=30)
+
+    beta1,beta2,lam=params[i-1]
+    title=r'$\beta_{1}$ :' +str(beta1)+' , '+ r'$\beta_{2}$ :' + str(beta2)+' , '+r'$\lambda$ :'+str(lam)
+    plt.title(title,fontdict={'fontsize':45})
+    plt.legend(fontsize=25)
+    plt.xlabel('Time Step (from ICU admission)', fontsize=30)
+    plt.ylabel('Action', fontsize=30)
+
+  if save_file:
+    plt.savefig(save_file)
+
+
+
+def plot_clinician_actions(pat,df,size=(20,10),save_title=False):
   acts=[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]          
   
   plt.figure(figsize=size)
   pat_df=df[df.Pat==pat]
-
-  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
-
-  action=ensm.get_ensemble_action(state,lam=lam)
-  fluids_pat=[acts[action[i]][1] for i in range(action.shape[0])]
-  vaso_pat=[acts[action[i]][0] for i in range(action.shape[0])]
-
-  plt.plot(np.arange(pat_df.shape[0]),fluids_pat,'royalblue',linestyle='dotted',linewidth=0.8,label=legends[0],marker=".",markersize=5)
-  plt.plot(np.arange(pat_df.shape[0]),vaso_pat,'orange',linestyle='dotted',linewidth=0.8,label=legends[3],marker=".",markersize=5)
+  clinician_action=pat_df.action.values
   
-  plt.plot(np.arange(pat_df.shape[0]),pat_df[feature].values,'g',linestyle=':',linewidth=1,marker='*',label=legends[1])
-  title='Lambda :'+ str(lam)
-  plt.title(title)
-  
-   
-  plt.hlines(df[feature].mean(),0,(pat_df.shape[0]),'k',label=legends[2])
-  
-  plt.legend()
-  
-import plotly.graph_objects as go
-
-# actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
-# def plot_feature_uncertainty(pat,df=df,feat=None,size=(20,20)):
-             
-    
-
-#   pat_df=df[df.Pat==pat]
 #   state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
-  
-#   exps=model.get_exp_vals(state).squeeze(-1).detach().cpu().numpy()  #T*9
-#   cols=['Uncertainty_act_{}'.format(i) for i in range(9)]
-#   uncertains=pat_df[cols].values
-  
-#   fig = go.Figure()
-#   for k in range(9):
-#      label='Expected Values for '+ actions[k]
-    
-#     #  label="Expected Values for Action : "+actions[k]
-#      fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]), y=exps[:,k],
-#                     mode='lines+markers', marker=dict(size=uncertains[:,k]*10),
-#                     name=label))
-     
-#   cols=['coral','green','darkgrey']
-        
-        
-  
-#   if feat:
-#     for i,feature in enumerate(feat):
-#       fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]),y=pat_df[feature].values,
-#                     mode='lines',
-#                     name=feature,marker=dict(color=cols[i])))
+
+  fluids_clinician=[acts[clinician_action[i]][1] for i in range(clinician_action.shape[0])]
+  vaso_clinician=[acts[clinician_action[i]][0] for i in range(clinician_action.shape[0])]
 
 
-#   fig.show()
- 
-  
-  
-kl=pd.read_csv('avergae_KLs.csv')
-for i in range(9):
-  
-  df['kl_uncertainty_for_act_{}'.format(i)]=kl.iloc[:,i]
-  
-  
+  plt.plot(np.arange(pat_df.shape[0]),fluids_clinician,'green',linestyle='dashed',linewidth=1.5,label=' Clinician Fluids',marker=".",markersize=8)
+  plt.plot(np.arange(pat_df.shape[0]),vaso_clinician,'blue',linestyle='dashed',linewidth=1.5,label=' Clinician Vaso',marker=".",markersize=8)
+  plt.yticks([0,1,2])
 
-def plot_polar_plots(pat,save=False,df=df,times=[0,-12,-5]):
+  plt.legend(fontsize='x-large',loc=0)
+  plt.tick_params(labelsize=20)
+  plt.title('Vasopressors and fluids administrated by clinician',fontdict={'fontsize':25})
+
+  if save_title:
+    filename='{}.jpg'.format(save_title)
+    plt.savefig(filename)
+
+
+
+import plotly.express as px
+import plotly.graph_objects as go
+def plot_polar_plots(pat,df,model,save=False,times=[0,-12,-5]):
 
     pat_df=df[df.Pat==pat]
     state=torch.Tensor(pat_df.iloc[:,:41].values)
@@ -182,18 +140,33 @@ def plot_polar_plots(pat,save=False,df=df,times=[0,-12,-5]):
     actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
 
 
-    for time in times:
-      fig = go.Figure()
-      name='Admission' if time==0 else '{} hours from death'.format(-time)
-      if time>0:
-        name='{} hours from admission'.format(time)
-      fig.add_trace(go.Scatterpolar(
-        r=(exps[time,:]+18)/36,
+  
+    fig = go.Figure()
+    names=['Admission']+['{} hours from death'.format(-time) for time in times[1:]]
+    fig.add_trace(go.Scatterpolar(
+        r=(exps[times[0],:]+18)/36,
         theta=actions,
         # fill='toself',
-        name=name
+        name=names[0]
       
           ))
+    
+    fig.add_trace(go.Scatterpolar(
+        r=(exps[times[1],:]+18)/36,
+        theta=actions,
+        # fill='toself',
+        name=names[1]
+      
+          ))
+    
+    fig.add_trace(go.Scatterpolar(
+        r=(exps[times[0],:]+18)/36,
+        theta=actions,
+        # fill='toself',
+        name=names[2]
+      
+          ))
+    
     
    
     fig.update_layout(
@@ -206,61 +179,11 @@ def plot_polar_plots(pat,save=False,df=df,times=[0,-12,-5]):
       )),
       showlegend=True
 
-    )
+      )
 
     fig.show()
     if save==True:
       # fig.write_html("'radarplot_{}.html".format(pat))
       fig.write_image("radarplot_{}.jpg".format(pat))
-      
-      
-
-
-actions = ['Vaso :' +str(i)+' Fluids :'+ str(j) for i in range(3) for j in range(3)]
-def plot_feature_uncertainty(pat,df=df,feat=None,size=(20,20),marker_only=False):
-             
-    
-
-  pat_df=df[df.Pat==pat]
-  state=torch.FloatTensor(df[df.Pat==pat].iloc[:,:41].values).to(device)
-  
-  exps=model.get_exp_vals(state).squeeze(-1).detach().cpu().numpy()  #T*9
-  cols=['Uncertainty_act_{}'.format(i) for i in range(9)]
-  uncertains=pat_df[cols].values
-  
-  fig = go.Figure()
-  for k in range(9):
-     label='Expected Values for '+ actions[k]
-    
-    #  label="Expected Values for Action : "+actions[k]
-     fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]), y=exps[:,k],
-                    mode='lines+markers', marker=dict(size=uncertains[:,k]*10),
-                    name=label))
-     
-  cols=['peru','darkslategray','darkcyan']
-        
-        
-  
-  if feat:
-    for i,feature in enumerate(feat):
-      style='lines+markers'
-      if marker_only:
-        style='markers'
-      if feature=='SOFA':
-        style='lines+markers'
-      fig.add_trace(go.Scatter(x=np.arange(pat_df.shape[0]),y=pat_df[feature].values,
-                    mode=style,
-                    name=feature,marker=dict(color=cols[i],size=4,symbol='x')))
-
-
-  fig.show()
- 
-  
-  
-
-      
-      
- 
- 
 
 
