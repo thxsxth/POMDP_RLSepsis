@@ -23,7 +23,7 @@ class QR_DQN_2(object):
   def __init__(self,num_actions=9,N=12, state_dim=41,device='cpu'
                ,gamma=0.999,
                Tau=0.005,p=3,mean=False):
-    self.Q=DistributionalDQN(state_dim,num_actions,N).to(device)
+    self.Q=QR_DistributionalDQN(state_dim,num_actions,N).to(device)
     self.Q_target=copy.deepcopy(self.Q)
     self.state_dim=state_dim
     self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=0.00005)

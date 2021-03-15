@@ -14,6 +14,48 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence,pad_packed_seq
 device='cuda' if torch.cuda.is_available() else 'cpu'
 
 
+class Discrete_RL_dataset(Dataset):
+  """
+   Need the df Ready and scaled
+   Normalization is Done before
+
+  """
+
+  def __init__(self,scale_rewards=False,df=df,k=41):
+    self.scale_rewards=scale_rewards
+    self.df=df
+    self.k=k
+
+  def __len__(self):
+    return self.df.shape[0]
+
+  def __getitem__(self,idx):
+    
+    temp=self.df.iloc[idx,:]
+    # Rewards is always +- 15 at the terminal step and 
+    done=int(np.abs(temp['Rewards'])==15 )
+    
+    states=torch.FloatTensor(temp.iloc[:self.k].values).to(device)
+    
+    assert states.shape==(self.k,)
+    if done:
+      next_states=torch.zeros_like(states).to(device)
+    
+    else:
+      next_states=torch.FloatTensor(self.df.iloc[idx+1,:].values[:self.k]).to(device)
+
+    assert next_states.shape==(self.k,)
+
+    reward=temp['Rewards']
+    
+    if self.scale_rewards:
+      reward=(rewards-2.313230e-02)/9.304778e-01
+    
+    action=int(temp.action)
+
+    # assert actions.shape==(2,)
+
+    return states,next_states,action,reward,done
 
 
 
