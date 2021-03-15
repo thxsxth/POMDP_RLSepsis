@@ -15,6 +15,114 @@ import copy
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device='cuda' if torch.cuda.is_available() else 'cpu'
 
+def huber(x, k=1.0):
+    return torch.where(x.abs() < k, 0.5 * x.pow(2), k * (x.abs() - 0.5 * k))
+
+class QR_DQN_2(object):
+
+  def __init__(self,num_actions=9,N=12, state_dim=41,device='cpu'
+               ,gamma=0.999,
+               Tau=0.005,p=3,mean=False):
+    self.Q=DistributionalDQN(state_dim,num_actions,N).to(device)
+    self.Q_target=copy.deepcopy(self.Q)
+    self.state_dim=state_dim
+    self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=0.00005)
+
+    self.Tau = Tau
+    self.gamma=gamma
+
+    self.num_actions = num_actions
+    self.N=N
+    self.p=p
+    self.mean=mean
+    self.tau = torch.Tensor((2 * np.arange(N) + 1) / (2.0 * N)).view(1, -1)
+
+
+  def polyak_target_update(self):
+     for param, target_param in zip(self.Q.parameters(), self.Q_target.parameters()):
+        target_param.data.copy_(self.Tau * param.data + (1 - self.Tau) * target_param.data)
+
+  
+  def train_epoch(self,data_loader,it=0):
+
+    sum_q_loss=0
+    for i,(state,next_state,action,reward,done) in enumerate(data_loader):
+
+      batch_size=state.shape[0]
+      # action=torch.LongTensor(action.reshape(batch_size,1)).to(device)
+      reward=torch.FloatTensor(reward.cpu().numpy()).to(device)
+      # done=done.reshape(batch_size,1).to(device)
+
+      batch=(state,next_state,action,reward,done)
+      loss=self.compute_loss(batch)
+      # print(loss.item())
+      sum_q_loss+=loss.item()
+       
+	    
+      if i%500==0:
+        print('Epoch :',it,'Batch :', i,'Average Loss :',sum_q_loss/(i+1))
+
+
+      self.optimizer.zero_grad()
+      loss.backward()
+
+      self.optimizer.step()
+      self.polyak_target_update()
+
+  def compute_loss(self,batch):
+    state,next_state,action,reward,done=batch  
+  
+    batch_size=state.shape[0]
+
+    theta=self.Q(state)[np.arange(batch_size), action.cpu().numpy(),:] #B*A*N-->B*N
+    
+    with torch.no_grad():
+      target_quants=self.Q_target(next_state) 
+      next_acts=self.get_next_action(target_quants,self.p,self.mean)
+      Target_theta=target_quants[np.arange(batch_size), next_acts.cpu().numpy(),:] #B*N
+    
+      # CHECK THIS PART
+      done = done.unsqueeze(-1).expand_as(Target_theta)
+      reward =reward.unsqueeze(-1).expand_as(Target_theta)
+      
+      Target_theta=(reward+(1-done)*self.gamma*Target_theta) #B*N
+      # Target_theta=torch.FloatTensor(Target_theta).to(device)
+      
+
+    diff = Target_theta.t().unsqueeze(-1) - theta 
+    loss = huber(diff) * (self.tau - (diff.detach() < 0).float()).abs()
+  
+
+    
+    return loss.mean()
+    
+
+  def get_next_action(self,dist,p,mean=False):
+    """
+    dist the quantile representation shape B*A*N
+    p is the percentile we won't to maximize
+    """
+    if mean:
+      return dist.mean(2).max(1)[1]
+
+    return torch.max(dist[:,:,p],dim=1)[1]
+
+  def get_exp_vals(self,state):
+    dist=self.Q(state) #B*9*N
+    return dist.mean(2) #B*9
+
+  def get_percentile(self,state,p):
+    with torch.no_grad():
+      dist=self.Q(state) #B*A*N
+    return dist[:,:,p]
+
+
+
+
+
+
+
+
 
 def load_model(model,PATH):
   checkpoint=torch.load(PATH)
@@ -73,6 +181,35 @@ class DistributionalDQN(nn.Module):
         out=self.out(out)
         
         return F.softmax(out.view(batch_size, -1, self.n_atoms),dim=2),F.log_softmax(out.view(batch_size, -1,self.n_atoms), dim = -1)
+
+
+class QR_DistributionalDQN(nn.Module):
+    def __init__(self, state_dim, n_actions, N):
+        super(QR_DistributionalDQN, self).__init__()
+
+        self.input_layer=nn.Linear(state_dim,512)
+        self.n=N
+        self.hiddens=nn.ModuleList([ nn.Sequential(
+            nn.Linear(512, 512),
+            nn.ReLU()) for _ in range(5) ])
+        
+       
+        self.out=nn.Linear(512, n_actions * N)
+       
+  
+    def forward(self, state):
+        batch_size =state.size()[0]
+        out=self.input_layer(state)
+
+        for layer in self.hiddens:
+          out=layer(out)
+        
+        out=self.out(out)
+        
+        return out.view(batch_size, -1, self.n)
+
+
+
 class dist_DQN(object):
   def __init__(self,
                num_actions=9,
@@ -85,7 +222,7 @@ class dist_DQN(object):
                n_atoms=51
                ):
     self.device=device
-    self.Q =DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
+    self.Q =QR_DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
     self.Q_target=copy.deepcopy(self.Q)
     self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=1e-5)
     self.state_dim=state_dim
@@ -121,7 +258,7 @@ class dist_DQN(object):
       sum_q_loss+=loss.item()
        
 	    
-      if i%25==0:
+      if i%500==0:
         print('Epoch :',it,'Batch :', i,'Average Loss :',sum_q_loss/(i+1))
 
 
