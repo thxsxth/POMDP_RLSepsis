@@ -222,7 +222,7 @@ class dist_DQN(object):
                n_atoms=51
                ):
     self.device=device
-    self.Q =QR_DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
+    self.Q =DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
     self.Q_target=copy.deepcopy(self.Q)
     self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=1e-5)
     self.state_dim=state_dim
