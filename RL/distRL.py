@@ -208,8 +208,6 @@ class QR_DistributionalDQN(nn.Module):
         
         return out.view(batch_size, -1, self.n)
 
-
-
 class dist_DQN(object):
   def __init__(self,
                num_actions=9,
@@ -219,13 +217,18 @@ class dist_DQN(object):
                device='cpu',
                gamma=0.999,
                tau=0.005,
-               n_atoms=51
+               n_atoms=51,
+               p=None,
+               beta=1.0
                ):
     self.device=device
     self.Q =DistributionalDQN(state_dim, num_actions,n_atoms).to(self.device)
     self.Q_target=copy.deepcopy(self.Q)
     self.optimizer=torch.optim.Adam(self.Q.parameters(),lr=1e-5)
+    self.p=p
     self.state_dim=state_dim
+    self.beta=beta
+
     self.tau = tau
     self.gamma=gamma
     self.v_min=v_min
@@ -235,10 +238,6 @@ class dist_DQN(object):
     self.atoms=n_atoms
     self.supports = torch.linspace(self.v_min, self.v_max, self.atoms).view(1, 1, self.atoms).to(self.device)
     self.delta = (self.v_max - self.v_min) / (self.atoms - 1)
-
-
-#     self.z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
-#     self.z_dist = torch.unsqueeze(self.z_dist, 2).float()
 
 
 
@@ -288,11 +287,22 @@ class dist_DQN(object):
      log_Q_dist_prediction = log_Q_dist_prediction[range_batch, action.squeeze(1), :]
 
      with torch.no_grad():
+        
+      if not self.p:
+       Q_dist_target, _ = self.Q_target(next_state)
+       Q_target = torch.matmul(Q_dist_target, z_dist).squeeze(1)
+       a_star = torch.argmax(Q_target, dim=1)
+       a_min=torch.argmin(Q_target, dim=1)
+       
+       Q_dist_star = self.beta*(Q_dist_target[range_batch, a_star.squeeze(1),:])+(1-
+                                                            self.beta)*(Q_dist_target[range_batch, a_min.squeeze(1),:])
+       
+      #  Q_dist_star = Q_dist_target[range_batch, a_star.squeeze(1),:]
+
+      else:
         Q_dist_target, _ = self.Q_target(next_state)
- 
-     Q_target = torch.matmul(Q_dist_target, z_dist).squeeze(1)
-     a_star = torch.argmax(Q_target, dim=1)
-     Q_dist_star = Q_dist_target[range_batch, a_star.squeeze(1),:]
+        a_star=self.get_percentile_acts(next_state,self.p)
+        Q_dist_star = Q_dist_target[range_batch, a_star,:]
 
      m = torch.zeros(batch_size,self.atoms).to(device)
 
@@ -329,18 +339,30 @@ class dist_DQN(object):
 
       return a_star
 
+  def get_percentile_acts(self,state,p):
+    """
+    p is the percentile
 
-  def get_exp_vals(self,state):
-    batch_size=state.shape[0]
-
-    Q_dist, _ = self.Q(state)
+    """
     
-    z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
-    z_dist = torch.unsqueeze(z_dist, 2).float()
- 
-    Q_exp = torch.matmul(Q_dist, z_dist).squeeze(1)
-	
-    return Q_exp
+    with torch.no_grad():
+     dist,_=self.Q_target(state)
+     dist=dist.cpu().numpy()
+
+    ## Find the cdf, and then find the minimun index of each row which is has cdf>=percentile
+    indices=np.array([np.argwhere(
+      (dist[i,k,:].cumsum(axis=-1)>p)).min() for i in range(state.shape[0]) for k in range(self.num_actions)
+        ]).reshape(state.shape[0],-1)
+
+    #Find the corresponding distribution element in each and then reshape
+    # per_values=np.array([np.linspace(self.v_min,self.v_max,self.Q.n_atoms)[idx] for idx in indices.reshape(-1)]).reshape(
+    #   -1,self.num_actions)
+
+    return indices.argmax(axis=1)
+
+
+
+
 
 
 filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
