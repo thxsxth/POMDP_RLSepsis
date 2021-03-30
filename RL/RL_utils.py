@@ -21,7 +21,7 @@ class Discrete_RL_dataset(Dataset):
 
   """
 
-  def __init__(self,scale_rewards=False,df=df,k=41):
+  def __init__(self,df,scale_rewards=False,k=41):
     self.scale_rewards=scale_rewards
     self.df=df
     self.k=k
@@ -57,7 +57,23 @@ class Discrete_RL_dataset(Dataset):
 
     return states,next_states,action,reward,done
 
+def get_RLactions(model,loader,k=0,p=False):
+    actions=[]
+    for i,batch in enumerate(loader):
+      state=batch[0]
+      if p:
+        a_star=get_percentile_acts(model,state,p)
+      else:
+        a_star=model.get_action(state)
+      
+      actions.append(a_star)
+      print(k,' ',(i/len(loader)), 'Done')
+    if  actions[0].ndim>1:
+       acts=[x.squeeze(1) for x in actions]
 
+    else:
+      acts=actions
+    return np.hstack(acts)
 
 def get_losses(Q,logQ,logQ1):
   """

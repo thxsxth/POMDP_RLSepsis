@@ -367,11 +367,12 @@ class dist_DQN(object):
 
 filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
 class ensemble_distDQN(object):
-  def __init__(self,model,filenames,I_filename):
+  def __init__(self,model,filenames,I_filename,state_dim=41):
     self.models=[model]
     for k in range(len(filenames)):
       model_=dist_DQN(v_max=18,v_min=-18)
       load_model(model_,filenames[k])
+      ensm.state_dim=state_dim
       self.models.append(model_)
    
     self.I=FC_I(41,9)
