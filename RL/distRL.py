@@ -182,6 +182,18 @@ class DistributionalDQN(nn.Module):
         
         return F.softmax(out.view(batch_size, -1, self.n_atoms),dim=2),F.log_softmax(out.view(batch_size, -1,self.n_atoms), dim = -1)
 
+    def get_exp_vals(self,state):
+       batch_size=state.shape[0]
+
+       Q_dist, _ = self.Q(state)
+    
+       z_dist = torch.from_numpy(np.array([[self.v_min + i*self.delta for i in range(self.atoms)]]*batch_size)).to(device)
+       z_dist = torch.unsqueeze(z_dist, 2).float()
+ 
+       Q_exp = torch.matmul(Q_dist, z_dist).squeeze(1)
+	
+       return Q_exp
+
 
 class QR_DistributionalDQN(nn.Module):
     def __init__(self, state_dim, n_actions, N):
@@ -428,6 +440,31 @@ class ensemble_distDQN(object):
      behav_probs,_=self.I(state)
      behav_probs=behav_probs.exp()
      behav_score=torch.exp(beta2*(behav_probs-behav_probs.max(dim=1)[0].view(-1,1)))
+
+     uncertainty_score=-lam*self.get_uncertainty(state)
+     
+     total_score=exp_score+behav_score+uncertainty_score
+     action=total_score.max(dim=1)[1]
+
+     return action, (exp_score,behav_score,uncertainty_score)
+
+  def uncertainty_aware_actions_2(self,state,beta1,beta2,lam):
+    #  assert beta1>=0 and beta2>=0 and lam>=0
+
+     batch_size=state.shape[0]
+
+     dists=self.get_ensemble_dists(state)
+     
+     z_dist = torch.from_numpy(np.array([[self.models[0].v_min + i*self.models[0].delta for i in range(self.models[0].atoms)]]*batch_size)).to(device)
+     z_dist = torch.unsqueeze(z_dist, 2).float()
+ 
+     exp_vals = torch.matmul(dists, z_dist).squeeze(-1)
+     exp_vals=F.softmax(exp_vals,dim=-1)  #batch_size*num_actions
+     exp_score=beta1*(exp_vals-exp_vals.max(dim=1)[0].view(-1,1))
+     
+     behav_probs,_=self.I(state)
+     behav_probs=behav_probs.exp()
+     behav_score=beta2*(behav_probs-behav_probs.max(dim=1)[0].view(-1,1))
 
      uncertainty_score=-lam*self.get_uncertainty(state)
      
