@@ -130,6 +130,7 @@ def load_model(model,PATH):
 
 
 class FC_I(nn.Module):
+  
 	def __init__(self, state_dim, num_actions,q_layers=4,i_layers=4):
 		super(FC_I, self).__init__()
 		# self.q1 = nn.Linear(state_dim, 512)
@@ -157,6 +158,7 @@ class FC_I(nn.Module):
 
 
 class DistributionalDQN(nn.Module):
+  
     def __init__(self, state_dim, n_actions, N_ATOMS):
         super(DistributionalDQN, self).__init__()
 
@@ -196,6 +198,7 @@ class DistributionalDQN(nn.Module):
 
 
 class QR_DistributionalDQN(nn.Module):
+
     def __init__(self, state_dim, n_actions, N):
         super(QR_DistributionalDQN, self).__init__()
 
@@ -221,6 +224,10 @@ class QR_DistributionalDQN(nn.Module):
         return out.view(batch_size, -1, self.n)
 
 class dist_DQN(object):
+  """
+  Categorical DQN class
+
+  """
   def __init__(self,
                num_actions=9,
                state_dim=41,
@@ -377,17 +384,31 @@ class dist_DQN(object):
 
 
 
-filenames=['dist_bootstrap_{}.pt'.format(i) for i in range(1,30)]
 class ensemble_distDQN(object):
-  def __init__(self,model,filenames,I_filename,state_dim=41):
+  """
+  Ensemble c51 object,
+
+  """
+  def __init__(self,model,filenames,I_filename,state_dim=41,num_actions=9,u_filenames=None):
     self.models=[model]
     for k in range(len(filenames)):
-      model_=dist_DQN(v_max=18,v_min=-18)
+      model_=dist_DQN(v_max=18,v_min=-18,num_actions=num_actions,state_dim=model.state_dim)
       load_model(model_,filenames[k])
-      ensm.state_dim=state_dim
+    
       self.models.append(model_)
    
-    self.I=FC_I(41,9)
+    self.I=FC_I(state_dim,num_actions)
+    if not u_filenames:
+      ## For uncertainty Quantification we can use different models with less training data
+      self.u_models=self.models
+    else:
+      self.u_models=[]
+      for k in range(len(u_filenames)):
+        model_=dist_DQN(v_max=18,v_min=-18,state_dim=model.state_dim)
+        load_model(model_,filenames[k])
+        self.u_models.append(model_)
+
+
     
     checkpoint=torch.load(I_filename)
     self.I.load_state_dict(checkpoint['state_dict'])  
@@ -395,6 +416,9 @@ class ensemble_distDQN(object):
     self.weights=[1]*len(self.models)
 
   def get_ensemble_exp_values(self,state):
+    """
+    Computes averaged expected value (computing every exp value seperately and then adding)
+    """
     exp_val=self.models[0].get_exp_vals(state).squeeze(-1)
     for j in range(1,len(self.models)):
       exp_val+=self.models[j].get_exp_vals(state).squeeze(-1)*self.weights[j]
@@ -405,7 +429,10 @@ class ensemble_distDQN(object):
     self.weights=weights
 
 
-  def get_ensemble_action(self,state,lam=False):
+  def get_ensemble_exp_val_action(self,state,lam=False):
+    """
+    Takes action w.r.t to the averaged exp value
+    """
     exp_vals=self.get_ensemble_exp_values(state)
     if lam:
       assert lam>=0
@@ -426,11 +453,26 @@ class ensemble_distDQN(object):
   def get_uncertainty(self,state):
       Q,logQ=self.models[0].Q(state)
       kld=0    
-      for i in range(1,len(self.models)):
-          Q1,logQ1=self.models[i].Q(state)
+      for i in range(1,len(self.u_models)):
+          Q1,logQ1=self.u_models[i].Q(state)
           kld+=self.get_kl_loss(Q,logQ,logQ1)
 
-      return kld/len(self.models)
+      return kld/len(self.u_models+1) #Models used for uncertainty quant + og.
+
+  def get_ensemble_dists(self,state):
+    """
+    Computes a (weighted) average of all the distributions
+    """
+    dist,_=model.Q(state)  #B*A*51
+    for j in range(1,len(self.models)):
+      dist1,_=self.models[j].Q(state)
+      dist+=dist1*self.weights[j]
+
+    return dist/sum(self.weights)
+  
+  def set_u_models(self,models_):
+    self.u_models=models_
+
 
   def uncertainty_aware_actions(self,state,beta1,beta2,lam):
      assert beta1>=0 and beta2>=0 and lam>=0
@@ -449,6 +491,9 @@ class ensemble_distDQN(object):
      return action, (exp_score,behav_score,uncertainty_score)
 
   def uncertainty_aware_actions_2(self,state,beta1,beta2,lam):
+     """
+     Correct uncertainty aware actions
+     """
     #  assert beta1>=0 and beta2>=0 and lam>=0
 
      batch_size=state.shape[0]
