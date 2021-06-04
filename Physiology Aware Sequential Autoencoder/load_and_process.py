@@ -100,7 +100,7 @@ class modeling_dataset(Dataset):
     pat_vaso=pat_vaso[['icustay_id','vaso_rate']]
     
     pat_fluids=pd.concat([fluids_cv[fluids_cv.icustay_id==pat].set_index('starttime').resample('H').sum(),
-           fluids_MV[fluids_MV.icustay_id==pat].set_index('starttime').resample('H').sum().fillna(0)]).resample('H').last        ().fillna(0)
+           fluids_MV[fluids_MV.icustay_id==pat].set_index('starttime').resample('H').sum().fillna(0)]).resample('H').last().fillna(0)
 
     pat_fluids['volume']=pat_fluids['tev_mv']+pat_fluids['tev_cv']
 
