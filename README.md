@@ -13,7 +13,7 @@ Open [mimic] database was used as the data source. Relationships of the schema c
 
 Most of the preprocessing was done on Google Big Query Mimic-iii project,and preprocessed and cleansed using SQL on Big Query and Pandas. Pivoted Labs, Sofa Score related scores and Vitals are all available on Big Query in Derived Tables. 
 
-SQL based data cleaning and processing code is available on the SQL folder. These are combined before using for Modelling/RL.
+Vasopressor and Fluid based csv files were derived from [Komorowski et. al], for the code included here, you would need hourly bins for the Metavision actions. Carevu only has the specific time.
 
 To Run the analysis we need, Pivoted Vitals,Sofa Scores and hourly vasopressor and fluid treatments. The RL cohort is included in terms on icustay ids for convenience.
 
